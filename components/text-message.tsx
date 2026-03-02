@@ -1,13 +1,12 @@
 "use client"
 
-import { JSX, useRef, useEffect } from "react"
+import { JSX, useRef, useEffect, useState } from "react"
 import { useFrame } from "@react-three/fiber"
 import * as THREE from "three"
 
 export default function TextMessage(): JSX.Element {
     const textGroupRef = useRef<THREE.Group>(null)
-    const canvasRef = useRef<HTMLCanvasElement | null>(null)
-    const textureRef = useRef<THREE.CanvasTexture | null>(null)
+    const [texture, setTexture] = useState<THREE.CanvasTexture | null>(null)
 
     useEffect(() => {
         // Create canvas for text
@@ -17,94 +16,107 @@ export default function TextMessage(): JSX.Element {
         const ctx = canvas.getContext('2d')
 
         if (ctx) {
-            // Clear canvas
+            // Clear canvas with transparent background
             ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-            // Draw background glow
-            ctx.shadowColor = '#FF69B4'
-            ctx.shadowBlur = 20
-
-            // Draw main text
-            ctx.font = 'bold 48px "Arial", "Helvetica", sans-serif'
+            // Draw text with proper sizing
             ctx.textAlign = 'center'
             ctx.textBaseline = 'middle'
 
-            // Gradient for text
-            const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0)
-            gradient.addColorStop(0, '#FF69B4')
-            gradient.addColorStop(0.5, '#FFB6C1')
-            gradient.addColorStop(1, '#FF1493')
+            // First line
+            ctx.font = 'bold 42px "Arial", "Helvetica", sans-serif'
 
-            ctx.fillStyle = gradient
+            // Gradient for first line
+            const gradient1 = ctx.createLinearGradient(0, 0, canvas.width, 0)
+            gradient1.addColorStop(0, '#FF69B4')
+            gradient1.addColorStop(0.5, '#FFB6C1')
+            gradient1.addColorStop(1, '#FF1493')
+
+            ctx.fillStyle = gradient1
             ctx.shadowColor = '#FF69B4'
             ctx.shadowBlur = 15
+            ctx.fillText('from me to you,', canvas.width / 2, 90)
 
-            // Draw first line
-            ctx.fillText('from me to you,', canvas.width / 2, canvas.height / 3)
+            // Second line
+            ctx.font = 'bold 52px "Arial", "Helvetica", sans-serif'
 
-            // Draw second line with different style
-            ctx.font = 'bold 64px "Arial", "Helvetica", sans-serif'
-            ctx.shadowBlur = 20
-            ctx.fillStyle = '#FFFFFF'
+            const gradient2 = ctx.createLinearGradient(0, 0, canvas.width, 0)
+            gradient2.addColorStop(0, '#FF1493')
+            gradient2.addColorStop(0.5, '#FF69B4')
+            gradient2.addColorStop(1, '#FFB6C1')
+
+            ctx.fillStyle = gradient2
             ctx.shadowColor = '#FF1493'
-            ctx.fillText("you're pretty cool", canvas.width / 2, canvas.height * 2 / 3)
+            ctx.shadowBlur = 20
+            ctx.fillText("you're pretty cool", canvas.width / 2, 165)
 
-            // Add small hearts decoration
-            ctx.font = '32px "Arial"'
+            // Small hearts decoration
+            ctx.font = '28px "Arial"'
             ctx.fillStyle = '#FF69B4'
             ctx.shadowBlur = 10
-            ctx.fillText('❤️', canvas.width / 4, canvas.height - 30)
-            ctx.fillText('❤️', canvas.width * 3 / 4, canvas.height - 30)
-        }
+            ctx.fillText('❤️', 120, 220)
+            ctx.fillText('❤️', canvas.width - 120, 220)
 
-        canvasRef.current = canvas
-        textureRef.current = new THREE.CanvasTexture(canvas)
+            // Create texture and force update
+            const newTexture = new THREE.CanvasTexture(canvas)
+            newTexture.needsUpdate = true
+            setTexture(newTexture)
+        }
     }, [])
 
     useFrame((state) => {
         if (textGroupRef.current) {
             // Gentle floating animation
             const t = state.clock.getElapsedTime()
-            textGroupRef.current.position.y = Math.sin(t * 0.5) * 0.2
+            textGroupRef.current.position.y = 2.2 + Math.sin(t * 0.5) * 0.2
 
             // Subtle rotation
             textGroupRef.current.rotation.y = Math.sin(t * 0.2) * 0.1
-            textGroupRef.current.rotation.x = Math.sin(t * 0.3) * 0.05
         }
     })
 
+    if (!texture) {
+        
+    }
+
     return (
-        <group ref={textGroupRef} position={[0, 1.5, 0]}>
-            {/* Main text panel */}
+        <group ref={textGroupRef} position={[0, 2.2, 0]}>
+            {/* Main text panel - adjusted size for text */}
             <mesh position={[0, 0, 0]}>
-                <planeGeometry args={[3, 1.5]} />
+                <planeGeometry args={[4, 2]} />
                 <meshStandardMaterial
-                    map={textureRef.current}
+                    map={texture}
                     transparent
                     side={THREE.DoubleSide}
                     emissive="#FF69B4"
-                    emissiveIntensity={0.3}
+                    emissiveIntensity={0.2}
                 />
             </mesh>
 
-            {/* Glow effect behind text */}
+            {/* Simple glow effect */}
             <mesh position={[0, 0, -0.1]}>
-                <planeGeometry args={[3.2, 1.7]} />
+                <planeGeometry args={[4.2, 2.2]} />
                 <meshBasicMaterial
                     color="#FF69B4"
                     transparent
-                    opacity={0.2}
+                    opacity={0.15}
                     side={THREE.DoubleSide}
                 />
             </mesh>
 
-            {/* Floating small hearts around text */}
-            {[-1.2, 0, 1.2].map((x, i) => (
-                <mesh key={i} position={[x, -0.8, 0.2]}>
-                    <sphereGeometry args={[0.1, 8, 8]} />
-                    <meshStandardMaterial color="#FF69B4" emissive="#FFB6C1" />
-                </mesh>
-            ))}
+            {/* Small hearts around text - positioned relative to new panel size */}
+            <mesh position={[-1.8, -1, 0.2]}>
+                <sphereGeometry args={[0.1, 8, 8]} />
+                <meshStandardMaterial color="#FF69B4" emissive="#FFB6C1" emissiveIntensity={0.5} />
+            </mesh>
+            <mesh position={[0, -1.1, 0.2]}>
+                <sphereGeometry args={[0.1, 8, 8]} />
+                <meshStandardMaterial color="#FF1493" emissive="#FF69B4" emissiveIntensity={0.5} />
+            </mesh>
+            <mesh position={[1.8, -1, 0.2]}>
+                <sphereGeometry args={[0.1, 8, 8]} />
+                <meshStandardMaterial color="#FF69B4" emissive="#FFB6C1" emissiveIntensity={0.5} />
+            </mesh>
         </group>
     )
 }
